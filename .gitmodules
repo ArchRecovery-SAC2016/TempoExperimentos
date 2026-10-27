@@ -1,0 +1,9 @@
+[submodule "Plugins/Tempo"]
+	path = Plugins/Tempo
+	url = https://github.com/tempo-sim/Tempo.git
+[submodule "Plugins/Greeter"]
+	path = Plugins/Greeter
+	url = https://github.com/tempo-sim/Greeter/
+[submodule "Plugins/TempoROS"]
+	path = Plugins/TempoROS
+	url = https://github.com/tempo-sim/TempoROS
