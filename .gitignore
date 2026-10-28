@@ -86,3 +86,10 @@ TempoEnv
 
 # pycache folders
 __pycache__
+
+# Local Jupyter and VS Code state
+.ipynb_checkpoints/
+.vscode/
+
+# Project Python API generated during the Tempo build
+Content/Python/API/
