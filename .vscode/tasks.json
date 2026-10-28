@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build TempoSample Editor",
+      "type": "process",
+      "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "$build = Join-Path $env:UNREAL_ENGINE_PATH 'Engine\\Build\\BatchFiles\\Build.bat'; if (-not (Test-Path $build)) { throw 'UNREAL_ENGINE_PATH is missing or does not point to an Unreal Engine installation.' }; & $build TempoSampleEditor Development Win64 '-Project=${workspaceFolder}\\TempoSample.uproject' -WaitMutex -FromMsBuild -NoUBA"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    }
+  ]
+}

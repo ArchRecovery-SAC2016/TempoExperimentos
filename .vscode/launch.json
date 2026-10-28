@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "TempoSample — Unreal Editor",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${env:UNREAL_ENGINE_PATH}\\Engine\\Binaries\\Win64\\UnrealEditor.exe",
+      "args": [
+        "${workspaceFolder}/TempoSample.uproject"
+      ],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Build TempoSample Editor",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    }
+  ]
+}
