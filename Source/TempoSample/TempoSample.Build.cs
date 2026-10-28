@@ -18,6 +18,9 @@ public class TempoSample : TempoModuleRules
 			"EnhancedInput",
 			// Tempo
 			"TempoCore",
+			"TempoSensors",
+			"TempoSensorsShaders",
+			"TempoROS",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
