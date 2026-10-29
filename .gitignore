@@ -92,3 +92,8 @@ __pycache__
 
 # Project Python API generated during the Tempo build
 Content/Python/API/
+
+# Local ROS 2 / colcon build artifacts for the ROSLab workspace
+ROSLab/build/
+ROSLab/install/
+ROSLab/log/
