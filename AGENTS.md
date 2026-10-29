@@ -8,5 +8,5 @@ Read [ROS.md](ROS.md) before changing ROS, Tempo, robot motion, sensors, or proj
 - Before every ROS command, run `source /opt/ros/humble/setup.bash` and `export RMW_IMPLEMENTATION=rmw_fastrtps_cpp`.
 - `ATempoTestRobot` owns its native `UTempoROSNode` in a `UPROPERTY`. Keep nodes alive this way; create them with `UTempoROSNode::Create`.
 - Do not edit `Plugins/Tempo`, `Plugins/TempoROS`, `Plugins/Tempo/TempoROSBridge`, generated ROS/protobuf files, or the Unreal Engine installation to implement project behavior. Put project behavior in `Source/TempoSample`.
-- The current `/cmd_vel` subscriber is **telemetry only**. Do not represent it as robot motion until a separately tested motion implementation exists.
+- `/cmd_vel` controls only bounded planar teleoperation (`linear.x` and `angular.z`) with a 0.5 s timeout and collision sweep. It is not yet an odometry, SLAM, Nav2, or coverage-planning implementation.
 - The TempoROSBridge movement services previously crashed this editor configuration. Do not call `/GetCommandablePawns`, `/CommandVelocity`, `/CommandVehicle`, or `/CommandAcceleration` while investigating native robot integration.

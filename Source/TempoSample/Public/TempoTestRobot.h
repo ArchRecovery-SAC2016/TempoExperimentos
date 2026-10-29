@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "TempoROSTypes.h"
 
 #include "TempoTestRobot.generated.h"
 
@@ -11,7 +12,6 @@ class UTempoLidar;
 class UTempoROSNode;
 class UStaticMeshComponent;
 class USpringArmComponent;
-struct FTwist;
 
 UCLASS(Blueprintable)
 class TEMPOSAMPLE_API ATempoTestRobot : public APawn
@@ -38,6 +38,7 @@ protected:
 	virtual void Tick(float DeltaTime) override;
 	void HandleTempoEcho(const FString& Message);
 	void HandleCommandVelocity(const FTwist& Command);
+	void ApplyVelocityCommand(float DeltaTime);
 	void PublishROSPose();
 
 	// Native collision and visual root. After compiling, move Blueprint-only
@@ -93,5 +94,24 @@ protected:
 	float ROSPosePublishIntervalSeconds = 0.1f;
 
 	float ROSPosePublishAccumulatorSeconds = 0.0f;
+
+	// `/cmd_vel` teleoperation is deliberately simple at this stage: a planar
+	// unicycle command with collision sweep. A command expires quickly so an
+	// interrupted ROS publisher cannot leave the robot moving indefinitely.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Tempo|ROS|Command Velocity")
+	bool bEnableROSVelocityControl = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Tempo|ROS|Command Velocity", meta=(ClampMin="0.0"))
+	float MaxLinearSpeedCmPerSecond = 100.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Tempo|ROS|Command Velocity", meta=(ClampMin="0.0"))
+	float MaxYawRateDegreesPerSecond = 90.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Tempo|ROS|Command Velocity", meta=(ClampMin="0.05"))
+	float CommandVelocityTimeoutSeconds = 0.5f;
+
+	FTwist LatestCommandVelocity;
+	float SecondsSinceLastCommandVelocity = 0.0f;
+	bool bHasCommandVelocity = false;
 
 };

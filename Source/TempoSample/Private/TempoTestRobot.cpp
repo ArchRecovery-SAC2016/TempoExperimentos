@@ -115,10 +115,49 @@ void ATempoTestRobot::HandleTempoEcho(const FString& Message)
 
 void ATempoTestRobot::HandleCommandVelocity(const FTwist& Command)
 {
+	LatestCommandVelocity = Command;
+	LatestCommandVelocity.LinearVelocity.X = FMath::Clamp(
+		Command.LinearVelocity.X, -MaxLinearSpeedCmPerSecond, MaxLinearSpeedCmPerSecond);
+	LatestCommandVelocity.AngularVelocity.Z = FMath::Clamp(
+		Command.AngularVelocity.Z, -MaxYawRateDegreesPerSecond, MaxYawRateDegreesPerSecond);
+	SecondsSinceLastCommandVelocity = 0.0f;
+	bHasCommandVelocity = true;
+
 	UE_LOG(LogTemp, Display,
-		TEXT("TempoROS received /cmd_vel (Unreal units): linear=(%.1f, %.1f, %.1f) cm/s, angular=(%.1f, %.1f, %.1f) deg/s"),
-		Command.LinearVelocity.X, Command.LinearVelocity.Y, Command.LinearVelocity.Z,
-		Command.AngularVelocity.X, Command.AngularVelocity.Y, Command.AngularVelocity.Z);
+		TEXT("TempoROS received /cmd_vel: forward=%.1f cm/s, yaw=%.1f deg/s%s"),
+		LatestCommandVelocity.LinearVelocity.X, LatestCommandVelocity.AngularVelocity.Z,
+		bEnableROSVelocityControl ? TEXT("") : TEXT(" (movement disabled)"));
+}
+
+void ATempoTestRobot::ApplyVelocityCommand(float DeltaTime)
+{
+	if (!bEnableROSVelocityControl || !bHasCommandVelocity)
+	{
+		return;
+	}
+
+	SecondsSinceLastCommandVelocity += DeltaTime;
+	if (SecondsSinceLastCommandVelocity > CommandVelocityTimeoutSeconds)
+	{
+		bHasCommandVelocity = false;
+		return;
+	}
+
+	// ROS convention for a ground robot is linear.x (forward) and angular.z
+	// (yaw). TempoROS has already converted their units and handedness here.
+	const FVector TranslationDelta = GetActorForwardVector() * LatestCommandVelocity.LinearVelocity.X * DeltaTime;
+	FHitResult Hit;
+	AddActorWorldOffset(TranslationDelta, true, &Hit);
+	FRotator RotationDelta = FRotator::ZeroRotator;
+	RotationDelta.Yaw = LatestCommandVelocity.AngularVelocity.Z * DeltaTime;
+	AddActorWorldRotation(RotationDelta);
+
+	if (Hit.IsValidBlockingHit())
+	{
+		const AActor* BlockingActor = Hit.GetActor();
+		UE_LOG(LogTemp, Verbose, TEXT("TempoTestRobot movement blocked by %s"),
+			BlockingActor ? *BlockingActor->GetName() : TEXT("world geometry"));
+	}
 }
 
 void ATempoTestRobot::PublishROSPose()
@@ -136,6 +175,8 @@ void ATempoTestRobot::PublishROSPose()
 void ATempoTestRobot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	ApplyVelocityCommand(DeltaTime);
 
 	const FRotator BrushTurn(0.0f, BrushRotationRateDegreesPerSecond * DeltaTime, 0.0f);
 	RobotBrushLeft->AddLocalRotation(BrushTurn);

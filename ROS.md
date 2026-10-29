@@ -69,7 +69,7 @@ LogTemp: Display: TempoROS received: Ola do Ubuntu
 | --- | --- | --- | --- |
 | `/tempo_smoke` | `std_msgs/msg/String` | Unreal -> ROS | One startup confirmation message. |
 | `/tempo_echo` | `std_msgs/msg/String` | ROS -> Unreal | Writes its payload to Unreal Output Log. |
-| `/cmd_vel` | `geometry_msgs/msg/Twist` | ROS -> Unreal | Logs converted velocity values only; it does **not** move the robot yet. |
+| `/cmd_vel` | `geometry_msgs/msg/Twist` | ROS -> Unreal | Planar teleoperation: `linear.x` moves forward/backward and `angular.z` turns. Commands expire after 0.5 s. |
 | `/tempo_test_robot/pose` | `geometry_msgs/msg/Transform` | Unreal -> ROS | Robot transform at 10 Hz. |
 | `/tf` | `tf2_msgs/msg/TFMessage` | Unreal -> ROS | Dynamic transform `map -> base_link` at 10 Hz. |
 
@@ -85,8 +85,17 @@ ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist \
 Expected Output Log line (the exact signs follow TempoROS coordinate conversion):
 
 ```text
-TempoROS received /cmd_vel (Unreal units): linear=(20.0, 0.0, 0.0) cm/s, ...
+TempoROS received /cmd_vel: forward=20.0 cm/s, yaw=0.0 deg/s
 ```
+
+The robot moves for up to 0.5 seconds after this one-shot command, then stops. For continuous teleoperation, publish at 10 Hz and stop with `Ctrl+C`:
+
+```bash
+ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist \
+  "{linear: {x: 0.2}, angular: {z: 0.0}}"
+```
+
+The native robot applies a collision sweep while translating. It currently supports only `linear.x` and `angular.z`, limits them to 1 m/s and 90 deg/s, and does not yet publish odometry. These are intentional limits for the first motion milestone.
 
 Test pose and TF:
 
@@ -107,7 +116,8 @@ ros2 run tf2_ros tf2_echo map base_link
 
 ## Next milestones
 
-1. Validate `/cmd_vel`, pose, and TF (this milestone; `/cmd_vel` must only log).
-2. Implement and test safe robot motion from `/cmd_vel` in `Source/TempoSample`.
-3. Publish a validated LiDAR ROS message from project C++ and inspect it in RViz2.
-4. Add odometry and then integrate SLAM/Nav2.
+1. Validate `/cmd_vel` motion with collision and command timeout (current milestone).
+2. Publish a validated LiDAR ROS message from project C++ and inspect it in RViz2.
+3. Add odometry and change the TF tree to `map -> odom -> base_link` for SLAM.
+4. Integrate SLAM Toolbox, then Nav2 waypoint navigation.
+5. Add coverage planning for a small rectangular area before scaling to the full terrain.
