@@ -2,7 +2,15 @@
 
 #include "TempoTestRobot.h"
 
+#include "Engine/CollisionProfile.h"
+#include "Engine/World.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "SlateFwd.h"
+#include "Tickable.h"
+#include "UObject/Package.h"
+
 #include "TempoLidar.h"
+#include "TempoROSCommonConverters.h"
 #include "TempoROSNode.h"
 
 #include "Components/StaticMeshComponent.h"
@@ -80,35 +88,69 @@ void ATempoTestRobot::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!TempoLidarComponent)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s could not create its native TempoRosLidar component."), *GetName());
-		return;
-	}
-
-	// Go through TempoROS's exported factory instead of constructing rclcpp
-	// NodeOptions in this game module. The factory keeps all rclcpp linkage
-	// inside the TempoROS plugin.
-	ROSNode = UTempoROSNodeBlueprintFunctionLibrary::CreateTempoROSNode(ROSNodeName, this);
+	ROSNode = UTempoROSNode::Create(TEXT("TempoTestRobotSmoke"), this);
 	if (!ROSNode)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s found TempoLidar '%s', but could not create the TempoROS node '%s'."),
-			*GetName(), *TempoLidarComponent->GetName(), *ROSNodeName);
+		UE_LOG(LogTemp, Error, TEXT("%s could not create its TempoROS smoke-test node."), *GetName());
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("%s connected TempoLidar '%s' to TempoROS node '%s'."),
-		*GetName(), *TempoLidarComponent->GetName(), *ROSNodeName);
+	ROSNode->AddPublisher<FString>(TEXT("/tempo_smoke"), FROSQOSProfile(), false);
+	ROSNode->AddSubscription<FString>(TEXT("/tempo_echo"),
+		TROSSubscriptionDelegate<FString>::CreateUObject(this, &ATempoTestRobot::HandleTempoEcho));
+
+	// This is the standard ROS 2 velocity-command type. For this milestone the
+	// command is deliberately logged only; it does not control the Pawn yet.
+	ROSNode->AddSubscription<FTwist>(TEXT("/cmd_vel"),
+		TROSSubscriptionDelegate<FTwist>::CreateUObject(this, &ATempoTestRobot::HandleCommandVelocity));
+	ROSNode->AddPublisher<FTransform>(TEXT("/tempo_test_robot/pose"), FROSQOSProfile(), false);
+	ROSNode->Publish<FString>(TEXT("/tempo_smoke"), TEXT("Hello from Unreal TempoROS"));
+	PublishROSPose();
+}
+
+void ATempoTestRobot::HandleTempoEcho(const FString& Message)
+{
+	UE_LOG(LogTemp, Display, TEXT("TempoROS received: %s"), *Message);
+}
+
+void ATempoTestRobot::HandleCommandVelocity(const FTwist& Command)
+{
+	UE_LOG(LogTemp, Display,
+		TEXT("TempoROS received /cmd_vel (Unreal units): linear=(%.1f, %.1f, %.1f) cm/s, angular=(%.1f, %.1f, %.1f) deg/s"),
+		Command.LinearVelocity.X, Command.LinearVelocity.Y, Command.LinearVelocity.Z,
+		Command.AngularVelocity.X, Command.AngularVelocity.Y, Command.AngularVelocity.Z);
+}
+
+void ATempoTestRobot::PublishROSPose()
+{
+	if (!ROSNode)
+	{
+		return;
+	}
+
+	const FTransform RobotTransform = GetActorTransform();
+	ROSNode->Publish<FTransform>(TEXT("/tempo_test_robot/pose"), RobotTransform);
+	ROSNode->PublishDynamicTransform(RobotTransform, TEXT("base_link"), TEXT("map"));
 }
 
 void ATempoTestRobot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	
 	const FRotator BrushTurn(0.0f, BrushRotationRateDegreesPerSecond * DeltaTime, 0.0f);
 	RobotBrushLeft->AddLocalRotation(BrushTurn);
 	RobotBrushRight->AddLocalRotation(BrushTurn);
-	
+
+	if (!ROSNode)
+	{
+		return;
+	}
+
+	ROSPosePublishAccumulatorSeconds += DeltaTime;
+	if (ROSPosePublishAccumulatorSeconds >= ROSPosePublishIntervalSeconds)
+	{
+		ROSPosePublishAccumulatorSeconds = 0.0f;
+		PublishROSPose();
+	}
 }
 

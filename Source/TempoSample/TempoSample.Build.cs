@@ -7,6 +7,7 @@ public class TempoSample : TempoModuleRules
 	public TempoSample(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		bEnableExceptions = true;
 	
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
@@ -21,6 +22,7 @@ public class TempoSample : TempoModuleRules
 			"TempoSensors",
 			"TempoSensorsShaders",
 			"TempoROS",
+			"rclcpp",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

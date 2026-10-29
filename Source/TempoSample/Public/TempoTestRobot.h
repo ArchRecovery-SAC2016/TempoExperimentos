@@ -11,6 +11,7 @@ class UTempoLidar;
 class UTempoROSNode;
 class UStaticMeshComponent;
 class USpringArmComponent;
+struct FTwist;
 
 UCLASS(Blueprintable)
 class TEMPOSAMPLE_API ATempoTestRobot : public APawn
@@ -32,14 +33,12 @@ public:
 	UFUNCTION(BlueprintPure, Category="Tempo|Robot")
 	USpringArmComponent* GetRobotSpringArm() const { return RobotSpringArm; }
 
-	// Node embedded in Unreal that will own the robot's ROS publishers and
-	// subscriptions.
-	UFUNCTION(BlueprintPure, Category="Tempo|ROS")
-	UTempoROSNode* GetROSNode() const { return ROSNode; }
-
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+	void HandleTempoEcho(const FString& Message);
+	void HandleCommandVelocity(const FTwist& Command);
+	void PublishROSPose();
 
 	// Native collision and visual root. After compiling, move Blueprint-only
 	// parts below this component and remove the legacy Blueprint Body.
@@ -82,13 +81,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Tempo|ROS|Lidar Mount")
 	FRotator LidarMountRotation = FRotator::ZeroRotator;
 
-	// Kept as a UPROPERTY so Unreal's garbage collector retains the native ROS
-	// node for as long as this robot exists.
+	// Retained as a UPROPERTY so Unreal does not garbage-collect the ROS node.
+	// This is a standalone TempoROS smoke test; it does not bridge movement or lidar.
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category="Tempo|ROS")
 	TObjectPtr<UTempoROSNode> ROSNode;
 
-	// A ROS graph-safe node name. It can be changed per Blueprint instance if
-	// the level later contains more than one robot.
+	// Publish robot pose and TF at a modest rate. The transform is converted
+	// from Unreal centimetres/left-handed coordinates to ROS metres/right-handed
+	// coordinates by TempoROSCommonConverters.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Tempo|ROS")
-	FString ROSNodeName = TEXT("tempo_test_robot");
+	float ROSPosePublishIntervalSeconds = 0.1f;
+
+	float ROSPosePublishAccumulatorSeconds = 0.0f;
+
 };

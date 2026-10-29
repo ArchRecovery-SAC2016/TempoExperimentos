@@ -31,6 +31,8 @@ This project contains very little code. For an example of how you can write your
 ## TempoROS
 [TempoROS](https://github.com/tempo-sim/TempoROS) is a standalone plugin, developed by the same authors, included in `Tempo` as a submodule. The `TempoROS` and `TempoROSBridge` plugins (the latter of which translates and forwards Tempo messages to and from ROS) are enabled by default in the `TempoSample` project. If you not using ROS, you can always disable these plugins by by editing the uproject file. You should also remove the `TempoROSCopyHandler` from [DefaultGame.ini](https://github.com/tempo-sim/TempoSample/blob/6c41ad31ae8736824b97b50e90b37af6fb3c76d6/Config/DefaultGame.ini#L97) if not using ROS.
 
+This project uses ROS 2 through a native `TempoROS` node in `TempoTestRobot`. See [ROS.md](ROS.md) for the verified startup procedure, current topics, and project rules.
+
 ## Python API
 To try out the Tempo Python API (after running `Plugins/Tempo/Setup.sh` and `Scripts/Build.sh`):
 - Run `source ./TempoEnv/bin/activate` to activate the included virtual environment
